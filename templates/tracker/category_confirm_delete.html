@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Category - FinTrack{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7 col-lg-5">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="{% url 'category_list' %}" class="text-decoration-none">Categories</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Delete Category</li>
+      </ol>
+    </nav>
+
+    <div class="card card-custom border-danger-subtle">
+      <div class="card-header bg-danger-subtle text-danger-emphasis">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span class="fw-bold">Delete Category Confirmation</span>
+        </div>
+      </div>
+      <div class="card-body">
+        {% if expense_count > 0 %}
+          <div class="text-center py-3">
+            <div class="empty-state-icon bg-danger-subtle text-danger mb-3">
+              <i class="bi bi-shield-x"></i>
+            </div>
+            <h5 class="fw-bold text-danger mb-2">Deletion Restricted</h5>
+            <div class="alert alert-danger text-start small mb-3">
+              <strong>🔴 This category cannot be deleted because it contains {{ expense_count }} existing expense(s).</strong>
+              <div class="mt-2 text-muted">
+                To protect your financial history, categories with transactions cannot be removed.
+              </div>
+            </div>
+            <p class="text-muted small">
+              Alternative: You can rename or update this category instead.
+            </p>
+            <div class="d-flex justify-content-center gap-2 mt-4">
+              <a href="{% url 'category_list' %}" class="btn btn-outline-secondary">
+                Back to Categories
+              </a>
+              <a href="{% url 'category_edit' category.id %}" class="btn btn-primary">
+                <i class="bi bi-pencil me-1"></i> Edit Category Instead
+              </a>
+            </div>
+          </div>
+        {% else %}
+          <p class="text-secondary mb-3">
+            Are you sure you want to permanently delete the category <strong class="text-dark">"{{ category.name }}"</strong>?
+          </p>
+          <div class="alert alert-light border small text-muted mb-4">
+            <i class="bi bi-info-circle me-1"></i>
+            This category contains <strong>0 expenses</strong> and can be safely deleted.
+          </div>
+
+          <form method="post">
+            {% csrf_token %}
+            <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+              <a href="{% url 'category_list' %}" class="btn btn-outline-secondary">
+                Cancel
+              </a>
+              <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash me-1"></i> Yes, Delete Category
+              </button>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

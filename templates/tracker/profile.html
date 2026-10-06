@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load tracker_tags %}
+
+{% block title %}User Profile - FinTrack{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-9 col-lg-7">
+    <div class="card card-custom mb-4">
+      <div class="card-body p-4">
+        <div class="d-flex flex-column flex-sm-row align-items-center gap-3 text-center text-sm-start">
+          <div class="avatar-badge bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 72px; height: 72px; font-size: 1.75rem; font-weight: 700;">
+            {{ user.username|slice:":1"|upper }}
+          </div>
+          <div>
+            <h3 class="fw-bold mb-1 text-dark">
+              {% if user.first_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}
+            </h3>
+            <div class="text-muted small">@{{ user.username }} &bull; {{ user.email }}</div>
+            <div class="text-muted small mt-1">
+              <i class="bi bi-clock-history me-1"></i> Member since {{ user.date_joined|date:"F Y" }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lifetime Financial Summary -->
+    <h5 class="fw-bold mb-3 text-dark">Lifetime Account Summary</h5>
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-sm-3">
+        <div class="metric-card p-3">
+          <div class="metric-title small">Categories</div>
+          <div class="metric-value fs-4">{{ total_categories }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="metric-card p-3">
+          <div class="metric-title small">Budgets</div>
+          <div class="metric-value fs-4">{{ total_budgets }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="metric-card p-3">
+          <div class="metric-title small">Total Expenses</div>
+          <div class="metric-value fs-4">{{ total_expenses_count }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="metric-card p-3">
+          <div class="metric-title small">Total Spent</div>
+          <div class="metric-value fs-5 text-truncate">{{ lifetime_spending|currency }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security & Isolation Info Card -->
+    <div class="card card-custom">
+      <div class="card-header">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-shield-lock-fill text-success"></i>
+          <span class="fw-semibold">Security & Data Isolation</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Your personal financial records (categories, monthly limits, and transactions) are strictly isolated and tied to your account credentials. No other user can access or view your financial records.
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{% url 'dashboard' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-grid-1x2 me-1"></i> Back to Dashboard
+          </a>
+          <form action="{% url 'logout' %}" method="post" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+              <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

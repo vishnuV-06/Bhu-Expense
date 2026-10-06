@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+{% load tracker_tags %}
+
+{% block title %}Dashboard - FinTrack{% endblock %}
+
+{% block content %}
+<!-- Top Header & Month Switcher -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2">
+      <h1 class="h3 fw-bold mb-0 text-dark">Financial Dashboard</h1>
+      {% if is_today_month %}
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 small">Current Month</span>
+      {% endif %}
+    </div>
+    <p class="text-muted small mb-0 mt-1">Overview of your monthly spending limits, transactions, and budget health.</p>
+  </div>
+
+  <!-- Month Navigator & Quick Actions -->
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <!-- Month Switcher -->
+    <div class="month-navigator">
+      <a href="?month={{ prev_month_str }}" class="btn-nav" data-bs-toggle="tooltip" title="Previous Month">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+      <span class="month-label">
+        <i class="bi bi-calendar3 me-1 text-primary"></i> {{ month_name }}
+      </span>
+      <a href="?month={{ next_month_str }}" class="btn-nav" data-bs-toggle="tooltip" title="Next Month">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    </div>
+
+    <!-- Month Picker Dropdown -->
+    <form method="get" class="d-inline">
+      <input type="month" id="monthSelectorInput" name="month" value="{{ current_month_str }}" class="form-control form-control-sm" style="width: 145px; display: inline-block;">
+    </form>
+
+    <!-- Quick Action Buttons -->
+    <a href="{% url 'expense_create' %}" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm">
+      <i class="bi bi-plus-circle"></i> <span>Add Expense</span>
+    </a>
+  </div>
+</div>
+
+<!-- Critical / Warning Alerts Section -->
+{% if alert_items %}
+  <div class="mb-4">
+    {% for item in alert_items %}
+      {% if item.status == 'danger' %}
+        <div class="alert alert-danger d-flex align-items-center justify-content-between shadow-sm border-danger-subtle rounded-3 py-2 px-3 mb-2" role="alert">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-octagon-fill fs-5 text-danger"></i>
+            <div>
+              <strong>🔴 Budget Exceeded:</strong>
+              <span>You have spent <strong>{{ item.spent|currency }}</strong> on <strong>{{ item.category.name }}</strong> against your <strong>{{ item.limit|currency }}</strong> budget ({{ item.percent }}%). Exceeded by <strong>{{ item.over_amount|currency }}</strong>.</span>
+            </div>
+          </div>
+          <a href="{% url 'budget_edit' item.budget.id %}" class="btn btn-outline-danger btn-sm py-1 px-2">Adjust Budget</a>
+        </div>
+      {% elif item.status == 'warning' %}
+        <div class="alert alert-warning d-flex align-items-center justify-content-between shadow-sm border-warning-subtle rounded-3 py-2 px-3 mb-2" role="alert">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill fs-5 text-warning-emphasis"></i>
+            <div>
+              <strong>⚠ Budget Warning:</strong>
+              <span>You have utilized <strong>{{ item.percent }}%</strong> of your <strong>{{ item.category.name }}</strong> budget ({{ item.spent|currency }} of {{ item.limit|currency }}). Remaining: <strong>{{ item.remaining|currency }}</strong>.</span>
+            </div>
+          </div>
+          <a href="{% url 'expense_create' %}?category={{ item.category.id }}" class="btn btn-outline-dark btn-sm py-1 px-2">Add Expense</a>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- Metric Summary Cards -->
+<div class="row g-3 mb-4">
+  <!-- Total Budget -->
+  <div class="col-6 col-lg-3">
+    <div class="metric-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="metric-title">Total Budget</div>
+          <div class="metric-value">{{ total_budget|currency }}</div>
+          <div class="metric-subtext">{{ month_name }}</div>
+        </div>
+        <div class="metric-icon-box metric-icon-indigo">
+          <i class="bi bi-wallet2"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Spent -->
+  <div class="col-6 col-lg-3">
+    <div class="metric-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="metric-title">Total Spent</div>
+          <div class="metric-value">{{ total_spent|currency }}</div>
+          <div class="metric-subtext">
+            {% if total_budget > 0 %}
+              {{ overall_percent }}% of total budget
+            {% else %}
+              No budget set yet
+            {% endif %}
+          </div>
+        </div>
+        <div class="metric-icon-box {% if remaining_budget < 0 %}metric-icon-crimson{% else %}metric-icon-amber{% endif %}">
+          <i class="bi bi-credit-card-2-front"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Remaining Budget -->
+  <div class="col-6 col-lg-3">
+    <div class="metric-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="metric-title">Remaining</div>
+          <div class="metric-value {% if remaining_budget < 0 %}text-danger{% else %}text-success{% endif %}">
+            {{ remaining_budget|currency }}
+          </div>
+          <div class="metric-subtext">
+            {% if remaining_budget < 0 %}
+              <span class="text-danger fw-semibold">Deficit this month</span>
+            {% else %}
+              <span class="text-success fw-semibold">Available balance</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="metric-icon-box {% if remaining_budget < 0 %}metric-icon-crimson{% else %}metric-icon-emerald{% endif %}">
+          <i class="bi bi-piggy-bank"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expenses Count -->
+  <div class="col-6 col-lg-3">
+    <div class="metric-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="metric-title">Transactions</div>
+          <div class="metric-value">{{ expense_count }}</div>
+          <div class="metric-subtext">Recorded in {{ month_name }}</div>
+        </div>
+        <div class="metric-icon-box metric-icon-blue">
+          <i class="bi bi-receipt"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Section: Category Budgets (Left) & Recent Expenses (Right) -->
+<div class="row g-4">
+  <!-- Left Column: Category Budgets & Analysis -->
+  <div class="col-lg-7">
+    <div class="card card-custom h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-pie-chart text-primary"></i>
+          <span class="fw-semibold">Monthly Budget Breakdown</span>
+        </div>
+        <a href="{% url 'budget_create' %}?month={{ current_month_str }}" class="btn btn-outline-primary btn-sm py-1">
+          <i class="bi bi-plus"></i> Set Budget
+        </a>
+      </div>
+      <div class="card-body">
+        {% if budget_items %}
+          <div class="d-flex flex-column gap-3">
+            {% for item in budget_items %}
+              <div class="p-3 border rounded-3 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div>
+                    <span class="fw-bold text-dark fs-6">{{ item.category.name }}</span>
+                    {% if item.category.description %}
+                      <span class="text-muted small ms-1">({{ item.category.description|truncatechars:35 }})</span>
+                    {% endif %}
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="badge {{ item.badge_class }} badge-pill">
+                      {{ item.status_label }}
+                    </span>
+                    <a href="{% url 'budget_edit' item.budget.id %}" class="text-secondary small text-decoration-none" title="Edit Budget">
+                      <i class="bi bi-pencil-square"></i>
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress progress-modern my-2">
+                  <div class="progress-bar {{ item.bar_class }}" role="progressbar" style="width: {{ item.display_percent }}%;" aria-valuenow="{{ item.percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+
+                <!-- Spending Details -->
+                <div class="d-flex justify-content-between align-items-center small mt-1">
+                  <div>
+                    <span class="text-muted">Spent:</span>
+                    <span class="fw-semibold text-dark">{{ item.spent|currency }}</span>
+                    <span class="text-muted">/ {{ item.limit|currency }}</span>
+                  </div>
+                  <div>
+                    {% if item.is_over %}
+                      <span class="text-danger fw-semibold">
+                        Over by {{ item.over_amount|currency }} ({{ item.percent }}%)
+                      </span>
+                    {% else %}
+                      <span class="text-muted">Remaining:</span>
+                      <span class="fw-semibold text-success">{{ item.remaining|currency }}</span>
+                      <span class="text-muted">({{ item.percent }}%)</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Unbudgeted spending notice if present -->
+          {% if unbudgeted_items %}
+            <div class="mt-3 p-3 bg-light rounded-3 border">
+              <div class="small fw-semibold text-muted mb-2">
+                <i class="bi bi-info-circle me-1"></i> Expenses without a set budget this month:
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                {% for unb in unbudgeted_items %}
+                  <span class="badge bg-white text-dark border p-2 d-flex align-items-center gap-2">
+                    <span>{{ unb.category.name }}: <strong>{{ unb.spent|currency }}</strong></span>
+                    <a href="{% url 'budget_create' %}?month={{ current_month_str }}" class="text-primary text-decoration-none small">
+                      <i class="bi bi-plus-circle"></i> Set Limit
+                    </a>
+                  </span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+        {% else %}
+          <!-- Empty State for Budgets -->
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <i class="bi bi-piggy-bank"></i>
+            </div>
+            <h5 class="empty-state-title">No Budgets Set for {{ month_name }}</h5>
+            <p class="empty-state-text">
+              Set spending limits for your categories to start monitoring your finances and get automatic alerts.
+            </p>
+            {% if user_has_categories %}
+              <a href="{% url 'budget_create' %}?month={{ current_month_str }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> Set First Monthly Budget
+              </a>
+            {% else %}
+              <a href="{% url 'category_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-tags me-1"></i> Create Your First Category
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Recent Expenses -->
+  <div class="col-lg-5">
+    <div class="card card-custom h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-clock-history text-primary"></i>
+          <span class="fw-semibold">Recent Transactions</span>
+        </div>
+        <a href="{% url 'expense_list' %}" class="text-decoration-none small fw-semibold text-primary">
+          View All <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% if recent_expenses %}
+          <div class="table-responsive">
+            <table class="table table-custom mb-0">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Date</th>
+                  <th class="text-end">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for exp in recent_expenses %}
+                  <tr>
+                    <td>
+                      <div class="fw-semibold text-dark">{{ exp.category.name }}</div>
+                      {% if exp.notes %}
+                        <div class="text-muted small text-truncate" style="max-width: 150px;">{{ exp.notes }}</div>
+                      {% endif %}
+                    </td>
+                    <td class="text-muted small">
+                      {{ exp.date|date:"d M Y" }}
+                    </td>
+                    <td class="text-end fw-bold text-dark">
+                      {{ exp.amount|currency }}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="p-3 text-center border-top">
+            <a href="{% url 'expense_create' %}" class="btn btn-outline-primary btn-sm w-100">
+              <i class="bi bi-plus-circle me-1"></i> Record New Expense
+            </a>
+          </div>
+        {% else %}
+          <!-- Empty State for Expenses -->
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <i class="bi bi-receipt"></i>
+            </div>
+            <h5 class="empty-state-title">No Expenses Yet</h5>
+            <p class="empty-state-text">
+              Start tracking your spending by adding your first transaction today.
+            </p>
+            {% if user_has_categories %}
+              <a href="{% url 'expense_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> Add First Expense
+              </a>
+            {% else %}
+              <a href="{% url 'category_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-tags me-1"></i> Create Category First
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

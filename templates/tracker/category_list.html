@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load tracker_tags %}
+
+{% block title %}Categories - FinTrack{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-0 text-dark">Category Management</h1>
+    <p class="text-muted small mb-0 mt-1">Organize and group your personal spending into meaningful categories.</p>
+  </div>
+  <a href="{% url 'category_create' %}" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm">
+    <i class="bi bi-plus-lg"></i> <span>Add New Category</span>
+  </a>
+</div>
+
+<div class="card card-custom">
+  <div class="card-body p-0">
+    {% if categories %}
+      <div class="table-responsive">
+        <table class="table table-custom align-middle">
+          <thead>
+            <tr>
+              <th>Category Name</th>
+              <th>Description</th>
+              <th class="text-center">Recorded Expenses</th>
+              <th class="text-end">Lifetime Spent</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cat in categories %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar-badge bg-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-weight: 600;">
+                      {{ cat.name|slice:":1"|upper }}
+                    </span>
+                    <span class="fw-bold text-dark">{{ cat.name }}</span>
+                  </div>
+                </td>
+                <td class="text-muted">
+                  {{ cat.description|default:"—" }}
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill px-2 py-1">
+                    {{ cat.expense_count }} transactions
+                  </span>
+                </td>
+                <td class="text-end fw-semibold text-dark">
+                  {{ cat.total_spent|default:0|currency }}
+                </td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <a href="{% url 'category_edit' cat.id %}" class="btn btn-outline-secondary btn-action" title="Edit Category">
+                      <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a href="{% url 'category_delete' cat.id %}" class="btn btn-outline-danger btn-action ms-1" title="Delete Category">
+                      <i class="bi bi-trash"></i> Delete
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i class="bi bi-tags"></i>
+        </div>
+        <h5 class="empty-state-title">No Categories Found</h5>
+        <p class="empty-state-text">
+          Categories help you classify where your money goes, such as Food, Housing, Travel, and Entertainment.
+        </p>
+        <a href="{% url 'category_create' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus-lg me-1"></i> Create Your First Category
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
